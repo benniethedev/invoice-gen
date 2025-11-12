@@ -45,41 +45,62 @@ export default function InvoicePage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    fetchInvoice()
+    if (intentId) {
+      fetchInvoice()
+    }
+  }, [intentId])
+
+  useEffect(() => {
     // Poll for updates every 5 seconds if payment is pending
-    const interval = setInterval(() => {
-      if (invoice?.status === 'pending') {
+    if (invoice?.status === 'pending') {
+      const interval = setInterval(() => {
         fetchInvoice()
-      }
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [intentId, invoice?.status])
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [invoice?.status])
 
   const fetchInvoice = async () => {
     try {
       const apiBase = process.env.NEXT_PUBLIC_SOLPAY_API_BASE || 'https://dev.solpay.cash'
+      console.log('Fetching invoice:', intentId, 'from', apiBase)
+
       const response = await fetch(`${apiBase}/api/v1/payment_intents/${intentId}`, {
         cache: 'no-store',
       })
 
+      console.log('Response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Invoice not found')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Error fetching invoice:', errorData)
+        throw new Error(errorData.error || `Failed to load invoice (${response.status})`)
       }
 
       const data = await response.json()
+      console.log('Invoice data:', data)
       setInvoice(data)
 
-      // Generate QR code
-      const qrCode = await QRCode.toDataURL(data.payment_url, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: '#7c3aed',
-          light: '#ffffff',
-        },
-      })
-      setQrCodeUrl(qrCode)
       setLoading(false)
+
+      // Generate QR code after state is set (client-side only)
+      if (typeof window !== 'undefined' && data.payment_url) {
+        try {
+          const qrCode = await QRCode.toDataURL(data.payment_url, {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: '#7c3aed',
+              light: '#ffffff',
+            },
+            errorCorrectionLevel: 'M',
+          })
+          setQrCodeUrl(qrCode)
+        } catch (qrErr) {
+          console.error('QR Code generation error:', qrErr)
+          // Continue anyway, just won't show QR code
+        }
+      }
     } catch (err: any) {
       setError(err.message)
       setLoading(false)

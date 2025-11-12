@@ -157,9 +157,15 @@ export function getDefaultClient(network?: 'solana:devnet' | 'solana:mainnet'): 
     ? (process.env.NEXT_PUBLIC_SOLPAY_API_BASE_MAINNET || 'https://www.solpay.cash')
     : (process.env.NEXT_PUBLIC_SOLPAY_API_BASE || 'https://dev.solpay.cash');
 
+  const merchantWallet = process.env.NEXT_PUBLIC_MERCHANT_WALLET || '';
+
+  if (!merchantWallet) {
+    throw new Error('NEXT_PUBLIC_MERCHANT_WALLET environment variable is not set. Please add your Solana wallet address to .env.local');
+  }
+
   return new SolPayClient({
     apiBase,
-    merchantWallet: process.env.NEXT_PUBLIC_MERCHANT_WALLET || '',
+    merchantWallet,
     network: selectedNetwork,
     facilitatorId: process.env.NEXT_PUBLIC_FACILITATOR_ID || 'facilitator.payai.network',
     debug: process.env.NODE_ENV === 'development',
