@@ -79,6 +79,12 @@ export default function InvoicePage() {
 
       const data = await response.json()
       console.log('Invoice data:', data)
+
+      // Add fallback payment_url if not provided by API
+      if (!data.payment_url) {
+        data.payment_url = `${apiBase}/pay/${intentId}`
+      }
+
       setInvoice(data)
 
       setLoading(false)
@@ -285,9 +291,19 @@ export default function InvoicePage() {
 
               {!isPaid && (
                 <>
-                  <div className="bg-white p-4 rounded-lg inline-block mb-6 border-4 border-purple-100">
-                    <img src={qrCodeUrl} alt="Payment QR Code" className="w-64 h-64" />
-                  </div>
+                  {qrCodeUrl && (
+                    <div className="bg-white p-4 rounded-lg inline-block mb-6 border-4 border-purple-100">
+                      <img src={qrCodeUrl} alt="Payment QR Code" className="w-64 h-64" />
+                    </div>
+                  )}
+                  {!qrCodeUrl && (
+                    <div className="bg-white p-4 rounded-lg inline-block mb-6 border-4 border-purple-100 w-64 h-64 flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                        <p className="text-sm">Generating QR code...</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mb-6">
                     <p className="text-sm text-gray-600 mb-2">Or use this link:</p>
